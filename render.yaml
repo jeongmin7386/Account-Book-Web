@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: account-book-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: account-book-db
+          property: connectionString
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "10080"
+
+  - type: web
+    name: account-book-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: pnpm run build
+    staticPublishPath: dist
+    autoDeployTrigger: commit
+    envVars:
+      - key: VITE_API_HOST
+        fromService:
+          type: web
+          name: account-book-api
+          property: host
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  - name: account-book-db
+    plan: basic-256mb
+    databaseName: account_book
+    user: account_book_user

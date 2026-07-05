@@ -1,0 +1,1 @@
+"""Manual finance tracker API."""

@@ -2,6 +2,7 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app import models
 from app.database import Base, engine
@@ -36,8 +37,19 @@ def on_startup() -> None:
 
 
 @app.get("/api/health")
-def health() -> dict[str, str]:
-    return {"status": "ok"}
+def health() -> dict[str, str | bool]:
+    database_ok = True
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except Exception:
+        database_ok = False
+
+    return {
+        "status": "ok",
+        "database_backend": engine.url.get_backend_name(),
+        "database_ok": database_ok,
+    }
 
 
 app.include_router(auth.router, prefix="/api")
